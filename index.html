@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- built by chronas_frames/standalone.py on 2026-10-18 15:45 UTC: avif, width 1300, quality 45, step 1, regions europe,asia,africa,samerica,namerica,mideast_seasia -->
+<!-- built by chronas_frames/standalone.py on 2026-10-18 16:06 UTC: avif, width 1300, quality 45, step 1, regions europe,asia,africa,samerica,namerica,mideast_seasia -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Historical map"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="theme-color" content="#14171c"><meta name="generator" content="chronas_frames/standalone.py"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-180.png">
 <title>Historical map and empire chart, 1700 to 2000</title>
 <style>
@@ -266,7 +266,7 @@ addEventListener(&#x27;resize&#x27;,render);render();
 <li>The Empires button chooses which curves are drawn.</li>
 </ul>
 <h3>Offline</h3><p id="offl">Offline copy: starting…</p><h3>This file</h3>
-<p>AVIF frames, 1300 px wide, quality 45, every year; regions: Europe, Asia, Africa, South America, North America, Middle East &amp; SE Asia. Built 2026-10-18 15:46 UTC by chronas_frames/standalone.py.</p></div></section>
+<p>AVIF frames, 1300 px wide, quality 45, every year; regions: Europe, Asia, Africa, South America, North America, Middle East &amp; SE Asia. Built 2026-10-18 16:06 UTC by chronas_frames/standalone.py.</p></div></section>
 </div>
 
 <script>
@@ -304,26 +304,41 @@ addEventListener(&#x27;resize&#x27;,render);render();
   // Site build: frames live in frames-REGION.<hash>.txt next to the page ("year:base64" lines), fetched the
   // first time a region is shown (the service worker keeps them for offline use). Until a region is loaded,
   // frames come back blank; setRegion waits for the data before it switches.
-  var FRAME_FILES = {"europe": "frames-europe.b8a7c5bee4.txt", "asia": "frames-asia.3f40d8fc9c.txt", "africa": "frames-africa.590d3f2c84.txt", "samerica": "frames-samerica.62c48a6d5e.txt", "namerica": "frames-namerica.d4f9543648.txt", "mideast_seasia": "frames-mideast_seasia.e25c520634.txt"}, want = null, BLANK = 'data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=';
+  var FRAME_FILES = {"europe": "frames-europe.b8a7c5bee4.txt", "asia": "frames-asia.3f40d8fc9c.txt", "africa": "frames-africa.590d3f2c84.txt", "samerica": "frames-samerica.62c48a6d5e.txt", "namerica": "frames-namerica.d4f9543648.txt", "mideast_seasia": "frames-mideast_seasia.e25c520634.txt"}, FRAME_BYTES = {"europe": 27425365, "asia": 19685549, "africa": 12772025, "samerica": 8712581, "namerica": 11903765, "mideast_seasia": 29226145}, want = null, loading = {}, BLANK = 'data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=';
   function dataFor(id) { return DATA[id] || {}; }
-  function busy(t, bad) {
+  function busy(t, bad, frac) { // banner over the page: what is loading, with a progress fill
     var b = document.getElementById('busy');
     if (!t) { if (b) b.remove(); return; }
     if (!b) { b = document.createElement('div'); b.id = 'busy'; document.body.insertBefore(b, document.body.firstChild); }
     b.className = 'warn' + (bad ? '' : ' busy'); b.textContent = t;
+    if (!bad && frac != null) { var pc = Math.round(Math.max(0, Math.min(1, frac)) * 100); b.style.background = 'linear-gradient(90deg,#1a56c4 ' + pc + '%,#3a3a3a ' + pc + '%)'; }
+    else b.style.background = '';
   }
-  function loadRegion(id) {
+  function mb(n) { return (n / 1e6).toFixed(n < 1e7 ? 1 : 0); }
+  function loadRegion(id, label) { // one download per region at a time; shows progress while it is the region asked for
     if (DATA[id]) return Promise.resolve();
+    if (loading[id]) return loading[id];
     window.__stage = 'fetching frames of ' + id;
-    return fetch(FRAME_FILES[id]).then(function (r) {
+    var total = FRAME_BYTES[id] || 0;
+    loading[id] = fetch(FRAME_FILES[id]).then(function (r) {
       if (!r.ok) throw new Error('HTTP ' + r.status + ' for ' + FRAME_FILES[id]);
-      return r.text();
+      if (!r.body || !r.body.getReader || !window.TextDecoder) return r.text();
+      var rd = r.body.getReader(), parts = [], got = 0;
+      return (function pump() {
+        return rd.read().then(function (x) {
+          if (x.done) { var all = new Uint8Array(got), o = 0; parts.forEach(function (q) { all.set(q, o); o += q.length; }); return new TextDecoder().decode(all); }
+          parts.push(x.value); got += x.value.length;
+          if (want === id) busy('Loading ' + label + '\u2026 ' + mb(got) + (total ? ' of ' + mb(total) : '') + ' MB (first time only)', false, total ? got / total : null);
+          return pump();
+        });
+      })();
     }).then(function (t) {
       window.__stage = 'reading frames of ' + id;
       var m = {}, lines = t.split('\n');
       for (var i = 0; i < lines.length; i++) { var l = lines[i], k = l.indexOf(':'); if (k > 0) m[l.slice(0, k)] = l.slice(k + 1); }
-      DATA[id] = m;
-    });
+      DATA[id] = m; delete loading[id];
+    }, function (e) { delete loading[id]; throw e; });
+    return loading[id];
   }
   (function () { // setRegion waits for its frames; the last region asked for wins
     var sr = window.setRegion;
@@ -331,10 +346,20 @@ addEventListener(&#x27;resize&#x27;,render);render();
       want = id;
       if (DATA[id]) { busy(); return sr(id); }
       var r = REGIONS.filter(function (x) { return x.id === id; })[0] || REGIONS[0];
-      busy('Loading ' + r.label + '…');
-      loadRegion(r.id).then(function () {
+      busy('Loading ' + r.label + '…', false, 0);
+      loadRegion(r.id, r.label).then(function () {
         if (want !== id) return;
         busy(); frameCaches[r.id] = {}; sr(id);
+        // safety net: if the new region's first frame has not been drawn (an image that finished loading without
+        // the page's own load handler painting it), draw it as soon as it is ready; this is what a second tap did
+        var tries = 0;
+        (function kick() {
+          if (want !== id || region.id !== id || ++tries > 100) return;
+          var f = frameFor(parseInt(slider.value, 10));
+          if (current === f && frameEl.style.visibility === 'visible') return;
+          if (!paint(f)) { setTimeout(kick, 120); return; }
+          sendYear();
+        })();
       }, function (e) { busy('Could not load ' + r.label + ': ' + (e && e.message ? e.message : e) + '. Check the connection and tap the button again.', true); });
     };
   })();
@@ -361,9 +386,10 @@ addEventListener(&#x27;resize&#x27;,render);render();
     if (!('serviceWorker' in navigator) || !window.caches) { out('Offline copy: not available in this browser or address. It needs the https address.'); return; }
     var ids = REGIONS.map(function (r) { return r.id; }), done = 0;
     function url(id) { return new URL(FRAME_FILES[id], location.href).href; }
+    function quiet() { return new Promise(function (ok) { (function wait() { if (!Object.keys(loading).length && !document.getElementById('busy')) ok(); else setTimeout(wait, 1000); })(); }); }
     function save(i) {
       if (i >= ids.length) { out('Offline copy: all ' + ids.length + ' regions are saved on this device. The page now opens without a network. (Add it to the Home Screen so iPadOS keeps it.)'); return Promise.resolve(); }
-      return window.caches.open('hm-frames').then(function (c) {
+      return quiet().then(function () { return window.caches.open('hm-frames'); }).then(function (c) {
         return c.match(url(ids[i])).then(function (m) { return m || c.add(url(ids[i])); });
       }).then(function () { done++; out('Offline copy: saved ' + done + ' of ' + ids.length + ' regions…'); return save(i + 1); });
     }
