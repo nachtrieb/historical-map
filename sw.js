@@ -1,5 +1,5 @@
-// service worker for the offline copy; written by chronas_frames/standalone.py --site. Version 0e0345a7fb.
-const VER = '0e0345a7fb', SHELL = 'hm-shell-' + VER, FR = 'hm-frames', FRAMES = ["frames-africa.590d3f2c84.txt", "frames-asia.3f40d8fc9c.txt", "frames-europe.b8a7c5bee4.txt", "frames-mideast_seasia.e25c520634.txt", "frames-namerica.d4f9543648.txt", "frames-samerica.62c48a6d5e.txt"];
+// service worker for the offline copy; written by chronas_frames/standalone.py --site. Version 573306f8f3.
+const VER = '573306f8f3', SHELL = 'hm-shell-' + VER, FR = 'hm-frames', FRAMES = ["frames-africa.590d3f2c84.txt", "frames-asia.3f40d8fc9c.txt", "frames-europe.b8a7c5bee4.txt", "frames-mideast_seasia.e25c520634.txt", "frames-namerica.d4f9543648.txt", "frames-samerica.62c48a6d5e.txt"];
 const CORE = ['./', 'index.html', 'manifest.webmanifest', 'icon-180.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(SHELL).then(c => c.addAll(CORE)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil((async () => {
@@ -17,7 +17,7 @@ self.addEventListener('fetch', e => {
   }
   e.respondWith((async () => {                                  // page and small files: network first, the saved copy when offline
     const c = await caches.open(SHELL);
-    try { const r = await Promise.race([fetch(req), new Promise((_, j) => setTimeout(j, 5000))]); if (r.ok) c.put(req, r.clone()); return r; }
+    try { const r = await Promise.race([fetch(req, { cache: 'no-cache' }), new Promise((_, j) => setTimeout(j, 5000))]); if (r.ok) c.put(req, r.clone()); return r; }
     catch (err) { return (await c.match(req, { ignoreSearch: true })) || (await c.match('index.html')) || Response.error(); }
   })());
 });

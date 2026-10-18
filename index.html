@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- built by chronas_frames/standalone.py on 2026-10-18 16:06 UTC: avif, width 1300, quality 45, step 1, regions europe,asia,africa,samerica,namerica,mideast_seasia -->
+<!-- built by chronas_frames/standalone.py on 2026-10-18 16:17 UTC: avif, width 1300, quality 45, step 1, regions europe,asia,africa,samerica,namerica,mideast_seasia -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Historical map"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="theme-color" content="#14171c"><meta name="generator" content="chronas_frames/standalone.py"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-180.png">
 <title>Historical map and empire chart, 1700 to 2000</title>
 <style>
@@ -115,6 +115,7 @@
     .controls { padding: 8px 14px 6px; gap: 6px 16px; }
     .tabs button { min-height: 44px; }
   }
+.ver { margin-left: 10px; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 </style></head><body>
 <div id="boot"><span id="bootmsg"></span><noscript>This page needs JavaScript, which Quick Look and some preview panes switch off. Open the file in a full web browser, or on an iPad in an app that runs web pages (for example Documents by Readdle).</noscript></div>
 <script>
@@ -142,7 +143,7 @@ window.__stage = 'start of page';
         <div class="step"><button type="button" id="fwd1" title="Forward one year">+1</button><span class="key">&rarr;</span></div>
         <div class="step"><button type="button" id="fwd10" title="Forward ten years">+10</button><span class="key">Shift &rarr;</span></div>
       </div>
-      <div class="meta"><span class="zinfo">Charts show <b id="zo"></b> <button type="button" id="zc" title="Charts zoom to 100 years around the selected year">Around year</button> <button type="button" id="zr0">All years</button></span></div>
+      <div class="meta"><span class="zinfo">Charts show <b id="zo"></b> <button type="button" id="zc" title="Charts zoom to 100 years around the selected year">Around year</button> <button type="button" id="zr0">All years</button><span class="ver" title="Build of this page (UTC)">v1018.1617</span></span></div>
     </section>
   </section>
   <div class="divider" id="divider" role="separator" aria-orientation="vertical" title="Drag to resize"></div>
@@ -266,7 +267,7 @@ addEventListener(&#x27;resize&#x27;,render);render();
 <li>The Empires button chooses which curves are drawn.</li>
 </ul>
 <h3>Offline</h3><p id="offl">Offline copy: starting…</p><h3>This file</h3>
-<p>AVIF frames, 1300 px wide, quality 45, every year; regions: Europe, Asia, Africa, South America, North America, Middle East &amp; SE Asia. Built 2026-10-18 16:06 UTC by chronas_frames/standalone.py.</p></div></section>
+<p>AVIF frames, 1300 px wide, quality 45, every year; regions: Europe, Asia, Africa, South America, North America, Middle East &amp; SE Asia. Built 2026-10-18 16:17 UTC by chronas_frames/standalone.py.</p></div></section>
 </div>
 
 <script>
@@ -350,15 +351,19 @@ addEventListener(&#x27;resize&#x27;,render);render();
       loadRegion(r.id, r.label).then(function () {
         if (want !== id) return;
         busy(); frameCaches[r.id] = {}; sr(id);
-        // safety net: if the new region's first frame has not been drawn (an image that finished loading without
-        // the page's own load handler painting it), draw it as soon as it is ready; this is what a second tap did
+        // safety net: a region's first frame must end up on the canvas without a second tap. Draw it as soon as its
+        // image is ready; if the image failed or never finishes, throw it away and start it again; say so on screen
+        // if it still does not draw.
         var tries = 0;
         (function kick() {
-          if (want !== id || region.id !== id || ++tries > 100) return;
+          if (want !== id || region.id !== id) return;
           var f = frameFor(parseInt(slider.value, 10));
           if (current === f && frameEl.style.visibility === 'visible') return;
-          if (!paint(f)) { setTimeout(kick, 120); return; }
-          sendYear();
+          var im = frameCaches[id] && frameCaches[id][f];
+          if (im && im.complete && !im.naturalWidth) delete frameCaches[id][f];     // failed to decode: start again
+          if (paint(f)) { sendYear(); return; }
+          if (++tries > 60) { var q = frameCaches[id][f]; busy('The map frame for ' + f + ' did not draw (image ' + (q ? 'complete=' + q.complete + ', width=' + q.naturalWidth : 'missing') + '). Tap the region again.', true); return; }
+          setTimeout(kick, 150);
         })();
       }, function (e) { busy('Could not load ' + r.label + ': ' + (e && e.message ? e.message : e) + '. Check the connection and tap the button again.', true); });
     };
