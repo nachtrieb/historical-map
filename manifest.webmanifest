@@ -1,0 +1,17 @@
+{
+ "name": "Historical Map",
+ "short_name": "History map",
+ "start_url": "./index.html",
+ "scope": "./",
+ "display": "standalone",
+ "orientation": "landscape",
+ "background_color": "#14171c",
+ "theme_color": "#14171c",
+ "icons": [
+  {
+   "src": "icon-180.png",
+   "sizes": "180x180",
+   "type": "image/png"
+  }
+ ]
+}
