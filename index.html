@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- built by chronas_frames/standalone.py on 2026-10-18 16:17 UTC: avif, width 1300, quality 45, step 1, regions europe,asia,africa,samerica,namerica,mideast_seasia -->
+<!-- built by chronas_frames/standalone.py on 2026-10-18 16:26 UTC: avif, width 1300, quality 45, step 1, regions europe,asia,africa,samerica,namerica,mideast_seasia -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Historical map"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="theme-color" content="#14171c"><meta name="generator" content="chronas_frames/standalone.py"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-180.png">
 <title>Historical map and empire chart, 1700 to 2000</title>
 <style>
@@ -143,7 +143,7 @@ window.__stage = 'start of page';
         <div class="step"><button type="button" id="fwd1" title="Forward one year">+1</button><span class="key">&rarr;</span></div>
         <div class="step"><button type="button" id="fwd10" title="Forward ten years">+10</button><span class="key">Shift &rarr;</span></div>
       </div>
-      <div class="meta"><span class="zinfo">Charts show <b id="zo"></b> <button type="button" id="zc" title="Charts zoom to 100 years around the selected year">Around year</button> <button type="button" id="zr0">All years</button><span class="ver" title="Build of this page (UTC)">v1018.1617</span></span></div>
+      <div class="meta"><span class="zinfo">Charts show <b id="zo"></b> <button type="button" id="zc" title="Charts zoom to 100 years around the selected year">Around year</button> <button type="button" id="zr0">All years</button><span class="ver" title="Build of this page (UTC)">v1018.1626</span></span></div>
     </section>
   </section>
   <div class="divider" id="divider" role="separator" aria-orientation="vertical" title="Drag to resize"></div>
@@ -266,8 +266,8 @@ addEventListener(&#x27;resize&#x27;,render);render();
 <li>The strip under the slider sets the years the charts show: drag the middle to slide it, the edges to zoom. &ldquo;Around year&rdquo; shows 100 years; &ldquo;All years&rdquo; resets.</li>
 <li>The Empires button chooses which curves are drawn.</li>
 </ul>
-<h3>Offline</h3><p id="offl">Offline copy: starting…</p><h3>This file</h3>
-<p>AVIF frames, 1300 px wide, quality 45, every year; regions: Europe, Asia, Africa, South America, North America, Middle East &amp; SE Asia. Built 2026-10-18 16:17 UTC by chronas_frames/standalone.py.</p></div></section>
+<h3>Offline</h3><p id="offl">Offline copy: starting…</p><p id="diag"></p><h3>This file</h3>
+<p>AVIF frames, 1300 px wide, quality 45, every year; regions: Europe, Asia, Africa, South America, North America, Middle East &amp; SE Asia. Built 2026-10-18 16:26 UTC by chronas_frames/standalone.py.</p></div></section>
 </div>
 
 <script>
@@ -341,31 +341,46 @@ addEventListener(&#x27;resize&#x27;,render);render();
     }, function (e) { delete loading[id]; throw e; });
     return loading[id];
   }
+  function diag(t) { var e = document.getElementById('diag'); if (e) e.textContent = t; }
   (function () { // setRegion waits for its frames; the last region asked for wins
     var sr = window.setRegion;
     window.setRegion = function (id) {
       want = id;
-      if (DATA[id]) { busy(); return sr(id); }
-      var r = REGIONS.filter(function (x) { return x.id === id; })[0] || REGIONS[0];
-      busy('Loading ' + r.label + '…', false, 0);
-      loadRegion(r.id, r.label).then(function () {
+      var r = REGIONS.filter(function (x) { return x.id === id; })[0] || REGIONS[0], t0 = Date.now(), had = !!DATA[id];
+      function afterData() {
         if (want !== id) return;
-        busy(); frameCaches[r.id] = {}; sr(id);
-        // safety net: a region's first frame must end up on the canvas without a second tap. Draw it as soon as its
-        // image is ready; if the image failed or never finishes, throw it away and start it again; say so on screen
-        // if it still does not draw.
-        var tries = 0;
-        (function kick() {
-          if (want !== id || region.id !== id) return;
+        if (!had) frameCaches[r.id] = {};
+        sr(id);
+        // the first frame of the region must end up on the canvas without a second tap: draw it as soon as its image
+        // is ready (by decode() and by polling, in case the image's load event is missed); restart a failed image;
+        // keep a banner up while it is not there, and say on screen if it never draws
+        var f0 = frameFor(parseInt(slider.value, 10)), fin = false, tries = 0, tLoad = Date.now() - t0;
+        busy('Drawing ' + r.label + '…');
+        function finish() {
+          if (fin) return; fin = true; busy();
+          diag('Last region switch: ' + r.label + ', ' + (had ? 'frames were already in memory' : 'frames downloaded in ' + (tLoad / 1000).toFixed(1) + ' s') + '; first frame drawn ' + ((Date.now() - t0 - tLoad) / 1000).toFixed(1) + ' s later (year ' + f0 + ').');
+        }
+        function check() {
+          if (fin) return true;
+          if (want !== id || region.id !== id) { fin = true; return true; }
           var f = frameFor(parseInt(slider.value, 10));
-          if (current === f && frameEl.style.visibility === 'visible') return;
+          if (current === f && frameEl.style.visibility === 'visible') { finish(); return true; }
           var im = frameCaches[id] && frameCaches[id][f];
           if (im && im.complete && !im.naturalWidth) delete frameCaches[id][f];     // failed to decode: start again
-          if (paint(f)) { sendYear(); return; }
-          if (++tries > 60) { var q = frameCaches[id][f]; busy('The map frame for ' + f + ' did not draw (image ' + (q ? 'complete=' + q.complete + ', width=' + q.naturalWidth : 'missing') + '). Tap the region again.', true); return; }
-          setTimeout(kick, 150);
+          if (paint(f)) { sendYear(); finish(); return true; }
+          return false;
+        }
+        (function poll() {
+          if (check()) return;
+          if (++tries > 100) { var q = frameCaches[id][f0]; fin = true; busy('The map frame for ' + f0 + ' did not draw (image ' + (q ? 'complete=' + q.complete + ', width=' + q.naturalWidth : 'missing') + '). Tap the region again.', true); return; }
+          setTimeout(poll, 150);
         })();
-      }, function (e) { busy('Could not load ' + r.label + ': ' + (e && e.message ? e.message : e) + '. Check the connection and tap the button again.', true); });
+        var im0 = frameCaches[id] && frameCaches[id][f0];
+        if (im0 && im0.decode) im0.decode().then(check, function () {});
+      }
+      if (had) { busy(); afterData(); return; }
+      busy('Loading ' + r.label + '…', false, 0);
+      loadRegion(r.id, r.label).then(afterData, function (e) { busy('Could not load ' + r.label + ': ' + (e && e.message ? e.message : e) + '. Check the connection and tap the button again.', true); });
     };
   })();
 
