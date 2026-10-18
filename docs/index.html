@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- built by chronas_frames/standalone.py on 2026-10-18 16:26 UTC: avif, width 1300, quality 45, step 1, regions europe,asia,africa,samerica,namerica,mideast_seasia -->
+<!-- built by chronas_frames/standalone.py on 2026-10-18 16:47 UTC: avif, width 1300, quality 45, step 1, regions europe,asia,africa,samerica,namerica,mideast_seasia -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Historical map"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="theme-color" content="#14171c"><meta name="generator" content="chronas_frames/standalone.py"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-180.png">
 <title>Historical map and empire chart, 1700 to 2000</title>
 <style>
@@ -143,7 +143,7 @@ window.__stage = 'start of page';
         <div class="step"><button type="button" id="fwd1" title="Forward one year">+1</button><span class="key">&rarr;</span></div>
         <div class="step"><button type="button" id="fwd10" title="Forward ten years">+10</button><span class="key">Shift &rarr;</span></div>
       </div>
-      <div class="meta"><span class="zinfo">Charts show <b id="zo"></b> <button type="button" id="zc" title="Charts zoom to 100 years around the selected year">Around year</button> <button type="button" id="zr0">All years</button><span class="ver" title="Build of this page (UTC)">v1018.1626</span></span></div>
+      <div class="meta"><span class="zinfo">Charts show <b id="zo"></b> <button type="button" id="zc" title="Charts zoom to 100 years around the selected year">Around year</button> <button type="button" id="zr0">All years</button><span class="ver" title="Build of this page (UTC)">v1018.1647</span></span></div>
     </section>
   </section>
   <div class="divider" id="divider" role="separator" aria-orientation="vertical" title="Drag to resize"></div>
@@ -267,7 +267,7 @@ addEventListener(&#x27;resize&#x27;,render);render();
 <li>The Empires button chooses which curves are drawn.</li>
 </ul>
 <h3>Offline</h3><p id="offl">Offline copy: starting…</p><p id="diag"></p><h3>This file</h3>
-<p>AVIF frames, 1300 px wide, quality 45, every year; regions: Europe, Asia, Africa, South America, North America, Middle East &amp; SE Asia. Built 2026-10-18 16:26 UTC by chronas_frames/standalone.py.</p></div></section>
+<p>AVIF frames, 1300 px wide, quality 45, every year; regions: Europe, Asia, Africa, South America, North America, Middle East &amp; SE Asia. Built 2026-10-18 16:47 UTC by chronas_frames/standalone.py.</p></div></section>
 </div>
 
 <script>
@@ -281,8 +281,8 @@ addEventListener(&#x27;resize&#x27;,render);render();
   slider.min = MIN; slider.max = MAX; slider.value = MIN;
   function url(f) { var d = dataFor(region.id)[f]; return d ? 'data:' + MIME + ';base64,' + d : BLANK; }
   function frameFor(y) { var F = region.frames, best = F[0]; for (var i = 0; i < F.length; i++) if (F[i] <= y) best = F[i]; return best; }
-  function load(f) { var c = frameCaches[region.id], im = c[f]; if (!im) { im = new Image(); im.src = url(f); c[f] = im; } return im; }
-  function ready(im) { return im.complete && im.naturalWidth > 0; }
+  function load(f) { var c = frameCaches[region.id], im = c[f]; if (!im) { im = new Image(); im.src = url(f); c[f] = im; trackDecode(im, f); } return im; }
+  function ready(im) { return im.complete && im.naturalWidth > 0 && (im.__ok === true || !im.decode); }
   // Paint onto a canvas: the previous frame stays up until the next is loaded, so no blank flash,
   // including when the region is switched.
   function paint(f) {
@@ -305,7 +305,7 @@ addEventListener(&#x27;resize&#x27;,render);render();
   // Site build: frames live in frames-REGION.<hash>.txt next to the page ("year:base64" lines), fetched the
   // first time a region is shown (the service worker keeps them for offline use). Until a region is loaded,
   // frames come back blank; setRegion waits for the data before it switches.
-  var FRAME_FILES = {"europe": "frames-europe.b8a7c5bee4.txt", "asia": "frames-asia.3f40d8fc9c.txt", "africa": "frames-africa.590d3f2c84.txt", "samerica": "frames-samerica.62c48a6d5e.txt", "namerica": "frames-namerica.d4f9543648.txt", "mideast_seasia": "frames-mideast_seasia.e25c520634.txt"}, FRAME_BYTES = {"europe": 27425365, "asia": 19685549, "africa": 12772025, "samerica": 8712581, "namerica": 11903765, "mideast_seasia": 29226145}, want = null, loading = {}, BLANK = 'data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=';
+  var FRAME_FILES = {"europe": "data/frames-europe.b8a7c5bee4.txt", "asia": "data/frames-asia.3f40d8fc9c.txt", "africa": "data/frames-africa.590d3f2c84.txt", "samerica": "data/frames-samerica.62c48a6d5e.txt", "namerica": "data/frames-namerica.d4f9543648.txt", "mideast_seasia": "data/frames-mideast_seasia.e25c520634.txt"}, FRAME_BYTES = {"europe": 27425365, "asia": 19685549, "africa": 12772025, "samerica": 8712581, "namerica": 11903765, "mideast_seasia": 29226145}, want = null, loading = {}, BLANK = 'data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=';
   function dataFor(id) { return DATA[id] || {}; }
   function busy(t, bad, frac) { // banner over the page: what is loading, with a progress fill
     var b = document.getElementById('busy');
@@ -386,6 +386,14 @@ addEventListener(&#x27;resize&#x27;,render);render();
 
   // Keep memory bounded on an iPad: only frames within 40 years of the selected one stay as Image
   // objects, and other regions' frames are dropped.
+  function trackDecode(im, f) {
+    if (!im.decode) return;
+    var id = region.id;
+    im.decode().then(function () {
+      im.__ok = true;
+      if (region.id === id && target === f && current !== f) paint(f);
+    }, function () { im.__ok = true; });
+  }
   function prune(y) {
     var keep = {}, c = frameCaches[region.id], d, k;
     for (d = -40; d <= 40; d++) keep[frameFor(y + d)] = 1;
